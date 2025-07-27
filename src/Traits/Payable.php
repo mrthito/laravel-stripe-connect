@@ -1,13 +1,13 @@
 <?php
 
-namespace SimonHamp\LaravelStripeConnect\Traits;
+namespace MrThito\LaravelStripeConnect\Traits;
 
 
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Config;
-use SimonHamp\LaravelStripeConnect\Enums\LinkType;
-use SimonHamp\LaravelStripeConnect\Interfaces\StripeConnect;
+use MrThito\LaravelStripeConnect\Enums\LinkType;
+use MrThito\LaravelStripeConnect\Interfaces\StripeConnect;
 use Stripe\Account;
 use Stripe\Balance;
 use Stripe\Transfer;

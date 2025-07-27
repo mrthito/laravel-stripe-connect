@@ -1,13 +1,13 @@
 <?php
 
-namespace SimonHamp\LaravelStripeConnect;
+namespace MrThito\LaravelStripeConnect;
 
 use Stripe\StripeClient;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider as BaseServiceProvider;
-use SimonHamp\LaravelStripeConnect\Interfaces\StripeConnect as StripeConnectInterface;
+use MrThito\LaravelStripeConnect\Interfaces\StripeConnect as StripeConnectInterface;
 
 class ServiceProvider extends BaseServiceProvider
 {
@@ -30,7 +30,7 @@ class ServiceProvider extends BaseServiceProvider
     protected function configure()
     {
         $this->mergeConfigFrom(
-            __DIR__.'/../config/stripe_connect.php',
+            __DIR__ . '/../config/stripe_connect.php',
             'stripe_connect'
         );
     }
@@ -41,14 +41,14 @@ class ServiceProvider extends BaseServiceProvider
             ->as('stripe-connect.')
             ->prefix('stripe-connect')
             ->group(function () {
-                $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+                $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
             });
     }
 
     protected function registerMigrations()
     {
         if ($this->app->runningInConsole()) {
-            $this->loadMigrationsFrom(__DIR__.'/../migrations');
+            $this->loadMigrationsFrom(__DIR__ . '/../migrations');
         }
     }
 
@@ -56,11 +56,11 @@ class ServiceProvider extends BaseServiceProvider
     {
         if ($this->app->runningInConsole()) {
             $this->publishes([
-                __DIR__.'/../config/stripe_connect.php' => $this->app->configPath('stripe_connect.php'),
+                __DIR__ . '/../config/stripe_connect.php' => $this->app->configPath('stripe_connect.php'),
             ], 'stripe-connect-config');
 
             $this->publishes([
-                __DIR__.'/../migrations' => $this->app->databasePath('migrations'),
+                __DIR__ . '/../migrations' => $this->app->databasePath('migrations'),
             ], 'stripe-connect-migrations');
         }
     }

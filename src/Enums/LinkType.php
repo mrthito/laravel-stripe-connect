@@ -1,6 +1,6 @@
 <?php
 
-namespace SimonHamp\LaravelStripeConnect\Enums;
+namespace MrThito\LaravelStripeConnect\Enums;
 
 enum LinkType: string
 {
