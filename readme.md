@@ -1,7 +1,7 @@
 # Laravel Stripe Connect
 
 This is a maintained fork of [rap2hpoutre/laravel-stripe-connect](https://github.com/rap2hpoutre/laravel-stripe-connect)
-by Raphaël Huchet ([@rap2hpoutre](https://github.com/rap2hpoutre)).
+by Raphaël Huchet ([@rap2hpoutre](https://github.com/rap2hpoutre)) and later by [Simon Hamp](https://github.com/simonhamp).
 
 With Laravel Stripe Connect, you can start your own marketplace platform using [Stripe Connect](https://stripe.com/connect)
 which allows you to make transfers to your recipients directly from your Stripe account to theirs.
