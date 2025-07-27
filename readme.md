@@ -50,15 +50,11 @@ Run migrations:
 php artisan migrate
 ```
 
-> [!IMPORTANT]
-> If you intend to use a table other than your `users` table to record your recipients' Stripe account
-> details, publish the migration by running
+If you intend to use a table other than your `users` table to record your recipients' Stripe account details, publish the migration by running
 
 ```
 php artisan vendor:publish --provider="MrThito\LaravelStripeConnect\ServiceProvider"
 ```
-
-and select the appropriate
 
 > options. You can then edit the published migration in your app's `database/migrations` folder.
 
