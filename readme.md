@@ -14,6 +14,7 @@ and start making payouts in no time.
 > however this can be changed.
 
 ## Sponsorship
+
 Laravel Stripe Connect is completely free to use for personal or commercial use. If it's making your job easier or you just want to
 make sure it keeps being supported and improved, I'd really appreciate your donations!
 
@@ -26,7 +27,7 @@ Thank you 🙏
 [Laradir](https://laradir.com/?ref=laravel-stripe-connect-github) - Connecting the best Laravel Developers with the best Laravel Teams.  
 [quantumweb](https://quantumweb.co/?ref=mrthito/laravel-stripe-connect-github) - A bare-metal web agency. Less layers, better results.  
 [RedGalaxy](https://www.redgalaxy.co.uk) - A web application development studio based in Cambridgeshire, building solutions to help businesses improve efficiency and profitability.  
-[Sevalla](https://sevalla.com/?utm_source=nativephp&utm_medium=Referral&utm_campaign=homepage) - Host and manage your applications, databases, and static sites in a single, intuitive platform.  
+[Sevalla](https://sevalla.com/?utm_source=nativephp&utm_medium=Referral&utm_campaign=homepage) - Host and manage your applications, databases, and static sites in a single, intuitive platform.
 
 ## Installation
 
@@ -51,12 +52,20 @@ php artisan migrate
 
 > [!IMPORTANT]
 > If you intend to use a table other than your `users` table to record your recipients' Stripe account
-> details, publish the migration by running `php artisan vendor:publish --provider="MrThito\LaravelStripeConnect\ServiceProvider"` and select the appropriate
+> details, publish the migration by running
+
+```
+php artisan vendor:publish --provider="MrThito\LaravelStripeConnect\ServiceProvider"
+```
+
+and select the appropriate
+
 > options. You can then edit the published migration in your app's `database/migrations` folder.
 
 ## Usage
+
 Add the `Payable` trait to any model that you consider to represent your recipient.
- 
+
 ```php
 use MrThito\LaravelStripeConnect\Traits\Payable;
 
