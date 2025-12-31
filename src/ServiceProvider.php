@@ -59,8 +59,10 @@ class ServiceProvider extends BaseServiceProvider
                 __DIR__ . '/../config/stripe_connect.php' => $this->app->configPath('stripe_connect.php'),
             ], 'stripe-connect-config');
 
+            $timestamp = date('Y_m_d_His'); // Laravel migration timestamp
             $this->publishes([
-                __DIR__ . '/../migrations' => $this->app->databasePath('migrations'),
+                __DIR__ . '/../migrations/add_stripe_connect_details_to_users_table.php.stub' =>
+                    $this->app->databasePath("migrations/{$timestamp}_add_stripe_connect_details_to_users_table.php"),
             ], 'stripe-connect-migrations');
         }
     }

@@ -30,4 +30,4 @@ return new class extends Migration
             $table->dropColumn('stripe_account_id', 'stripe_account_active');
         });
     }
-}
+};
