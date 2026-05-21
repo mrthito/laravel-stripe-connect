@@ -1,22 +1,14 @@
 <?php
 
-use Illuminate\Support\Facades\Auth;
+declare(strict_types=1);
+
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\Response;
+use MrThito\LaravelStripeConnect\Http\Controllers\AccountRefreshController;
+use MrThito\LaravelStripeConnect\Http\Controllers\AccountReturnController;
+use MrThito\LaravelStripeConnect\Http\Middleware\EnsureHasStripeAccount;
 
-Route::get('return', function () {
-    $account = Auth::user()->retrieveStripeAccount();
-
-    Auth::user()
-        ->setStripeAccountStatus($account->details_submitted)
-        ->save();
-
-    return Route::has(Config::get('stripe_connect.routes.account.complete'))
-        ? Response::redirectToRoute(Config::get('stripe_connect.routes.account.complete'))
-        : Response::redirectTo('/');
-})->name('return');
-
-Route::get('refresh', function () {
-    return Response::redirectTo(Auth::user()->getStripeAccountLink());
-})->name('refresh');
+// Mounted by the service provider at /stripe-connect with auth + Payable middleware.
+Route::middleware([EnsureHasStripeAccount::class])->group(function () {
+    Route::get('return', AccountReturnController::class)->name('return');
+    Route::get('refresh', AccountRefreshController::class)->name('refresh');
+});

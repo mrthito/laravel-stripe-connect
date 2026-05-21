@@ -1,17 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
          colors="true"
-         bootstrap="./vendor/autoload.php"
- >
+         cacheDirectory=".pest"
+>
     <testsuites>
-        <testsuite name="all">
-            <directory suffix="Test.php">tests/</directory>
+        <testsuite name="Package">
+            <directory suffix=".php">tests</directory>
+            <exclude>tests/Fixtures</exclude>
+            <exclude>tests/Concerns</exclude>
+            <exclude>tests/Pest.php</exclude>
+            <exclude>tests/TestCase.php</exclude>
+            <exclude>tests/DisabledRoutesTestCase.php</exclude>
         </testsuite>
     </testsuites>
-    <coverage processUncoveredFiles="true">
+    <source>
         <include>
-            <directory suffix=".php">./src</directory>
+            <directory suffix=".php">src</directory>
         </include>
-    </coverage>
+    </source>
 </phpunit>
