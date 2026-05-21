@@ -1,124 +1,252 @@
 <?php
 
+declare(strict_types=1);
+
 namespace MrThito\LaravelStripeConnect\Traits;
 
-
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\URL;
+use MrThito\LaravelStripeConnect\Contracts\StripeConnect;
 use MrThito\LaravelStripeConnect\Enums\LinkType;
-use MrThito\LaravelStripeConnect\Interfaces\StripeConnect;
+use MrThito\LaravelStripeConnect\Models\StripeConnectAccount;
+use MrThito\LaravelStripeConnect\Support\StripeSecurity;
 use Stripe\Account;
 use Stripe\Balance;
 use Stripe\Transfer;
-use Stripe\StripeClient;
 
+/**
+ * Stripe Connect helpers for Eloquent models that represent payout recipients.
+ *
+ * Account details are stored on the polymorphic {@see StripeConnectAccount} model,
+ * so any table (User, Team, Seller, etc.) can receive payouts without extra columns.
+ *
+ * @mixin Model
+ */
 trait Payable
 {
-    protected static StripeClient $stripe;
+    /** Cached Stripe API account object from the most recent SDK call. */
+    protected ?Account $stripeApiAccount = null;
 
-    protected Account $stripe_connect_account;
-
-    protected static function bootPayable()
+    /**
+     * Polymorphic Stripe Connect record for this model.
+     */
+    public function stripeConnectAccount(): MorphOne
     {
-        static::$stripe = App::make(StripeConnect::class);
+        return $this->morphOne($this->stripeConnectAccountModel(), $this->stripeConnectMorphName());
     }
 
     /**
-     * Create a new Stripe Connect account for this model
+     * Creates a connected account and stores its ID on the morph record.
+     *
+     * Only keys listed in `stripe_connect.security.allowed_create_account_keys` are forwarded.
+     *
+     * @param  array<string, mixed>  $details
      */
-    public function createStripeAccount(array $details): self
+    public function createStripeAccount(array $details): static
     {
-        $this->stripe_connect_account = static::$stripe->accounts->create($details);
+        $payload = StripeSecurity::filterAccountCreatePayload(
+            $details,
+            Config::array('stripe_connect.security.allowed_create_account_keys')
+        );
 
-        $this->setStripeAccountId($this->stripe_connect_account->id)->save();
+        if (! isset($payload['type'])) {
+            $payload['type'] = 'express';
+        }
+
+        StripeSecurity::assertAllowedAccountType(
+            (string) $payload['type'],
+            Config::array('stripe_connect.security.allowed_account_types')
+        );
+
+        $this->stripeApiAccount = $this->stripe()->accounts->create($payload);
+
+        $this->setStripeAccountId($this->stripeApiAccount->id);
+        $this->save();
 
         return $this;
     }
 
-    /**
-     * Get the latest details about this account from Stripe
-     */
     public function retrieveStripeAccount(): Account
     {
-        return $this->stripe_connect_account = static::$stripe->accounts->retrieve($this->getStripeAccountId());
+        $this->requireStripeAccountId();
+
+        return $this->stripeApiAccount = $this->stripe()->accounts->retrieve(
+            (string) $this->getStripeAccountId()
+        );
     }
 
-    public function getStripeAccountId()
+    public function getStripeAccountId(): ?string
     {
-        return $this->{$this->getStripeAccountIdColumn()};
+        $accountId = $this->relationLoaded('stripeConnectAccount')
+            ? $this->stripeConnectAccount?->stripe_account_id
+            : $this->stripeConnectAccount()->value('stripe_account_id');
+
+        return is_string($accountId) && $accountId !== '' ? $accountId : null;
     }
 
-    public function isStripeAccountActive()
+    public function isStripeAccountActive(): bool
     {
-        return $this->{$this->getStripeAccountStatusColumn()};
+        if ($this->relationLoaded('stripeConnectAccount')) {
+            return (bool) $this->stripeConnectAccount?->stripe_account_active;
+        }
+
+        return (bool) $this->stripeConnectAccount()->value('stripe_account_active');
     }
 
-    /**
-     * Get the redirect URL needed to take this account through Stripe's onboarding flow
-     */
     public function getStripeAccountLink(LinkType $type = LinkType::Onboarding): string
     {
-        $link = static::$stripe->accountLinks->create(
-            [
-                'account' => $this->getStripeAccountId(),
-                'refresh_url' => URL::route(Config::get('stripe_connect.routes.account.refresh')),
-                'return_url' => URL::route(Config::get('stripe_connect.routes.account.return')),
-                'type' => $type->value,
-            ]
-        );
+        $this->requireStripeAccountId();
+
+        $link = $this->stripe()->accountLinks->create([
+            'account' => $this->getStripeAccountId(),
+            'refresh_url' => URL::route(Config::string('stripe_connect.routes.account.refresh')),
+            'return_url' => URL::route(Config::string('stripe_connect.routes.account.return')),
+            'type' => $type->value,
+        ]);
 
         return $link->url;
     }
 
-    public function transfer($amount, $currency): Transfer
+    /**
+     * Transfers funds from the platform balance to this connected account.
+     *
+     * Amount is in the currency's smallest unit (for example, cents for USD).
+     */
+    public function transfer(int $amount, string $currency): Transfer
     {
-        // TODO: capture this in the database, which may allow us to do a reversal later
-        return static::$stripe->transfers->create([
+        $this->requireStripeAccountId();
+
+        $normalizedCurrency = strtolower($currency);
+
+        StripeSecurity::assertValidCurrency($normalizedCurrency);
+        StripeSecurity::assertValidTransferAmount(
+            $amount,
+            $this->maxTransferAmount()
+        );
+
+        return $this->stripe()->transfers->create([
             'amount' => $amount,
-            'currency' => $currency,
+            'currency' => $normalizedCurrency,
             'destination' => $this->getStripeAccountId(),
         ]);
     }
 
     public function getAccountBalance(): Balance
     {
-        return static::$stripe->balance->retrieve([], [
+        $this->requireStripeAccountId();
+
+        return $this->stripe()->balance->retrieve([], [
             'stripe_account' => $this->getStripeAccountId(),
         ]);
     }
 
-    public function setStripeAccountStatus($status)
+    public function setStripeAccountStatus(bool $status): static
     {
-        $this->{$this->getStripeAccountStatusColumn()} = $status;
+        $this->stripeConnectRecord()->update([
+            'stripe_account_active' => $status,
+        ]);
+
+        if ($this->relationLoaded('stripeConnectAccount')) {
+            $this->stripeConnectAccount->stripe_account_active = $status;
+        }
 
         return $this;
     }
 
-    protected function getStripeAccountIdColumn()
+    public function getExpressDashboardLink(): string
     {
-        return Config::get('stripe_connect.payable.account_id_column');
+        $this->requireStripeAccountId();
+
+        return $this->stripe()->accounts->createLoginLink((string) $this->getStripeAccountId())->url;
     }
 
-    protected function setStripeAccountId($id)
+    public function canAcceptCapability(string $capability = 'transfers'): bool
     {
-        $this->{$this->getStripeAccountIdColumn()} = $id;
+        $this->requireStripeAccountId();
+
+        StripeSecurity::assertAllowedCapability(
+            $capability,
+            Config::array('stripe_connect.security.allowed_capabilities')
+        );
+
+        return $this->stripe()->accounts->retrieveCapability(
+            (string) $this->getStripeAccountId(),
+            $capability
+        )->status === 'active';
+    }
+
+    /**
+     * Ensures a connected account exists before calling money movement APIs.
+     */
+    protected function requireStripeAccountId(): void
+    {
+        StripeSecurity::assertValidAccountId($this->getStripeAccountId());
+    }
+
+    /** Resolves the bound Stripe SDK client from the service container. */
+    protected function stripe(): StripeConnect
+    {
+        return App::make(StripeConnect::class);
+    }
+
+    protected function setStripeAccountId(string $id): static
+    {
+        StripeSecurity::assertValidAccountId($id);
+
+        $this->stripeConnectRecord()->update([
+            'stripe_account_id' => $id,
+        ]);
+
+        if ($this->relationLoaded('stripeConnectAccount')) {
+            $this->stripeConnectAccount->stripe_account_id = $id;
+        }
 
         return $this;
     }
 
-    protected function getStripeAccountStatusColumn()
+    /**
+     * Returns the morph record, creating an empty row when needed.
+     */
+    protected function stripeConnectRecord(): StripeConnectAccount
     {
-        return Config::get('stripe_connect.payable.account_status_column');
+        if ($this->relationLoaded('stripeConnectAccount') && $this->stripeConnectAccount !== null) {
+            return $this->stripeConnectAccount;
+        }
+
+        return $this->stripeConnectAccount()->firstOrCreate([]);
     }
 
-    public function getExpressDashboardLink()
+    /**
+     * Override on your model to use a custom StripeConnectAccount subclass.
+     *
+     * @return class-string<StripeConnectAccount>
+     */
+    protected function stripeConnectAccountModel(): string
     {
-        return static::$stripe->accounts->createLoginLink($this->getStripeAccountId())->url;
+        $model = Config::get('stripe_connect.account.model');
+
+        return is_string($model) && $model !== ''
+            ? $model
+            : StripeConnectAccount::class;
     }
 
-    public function canAcceptCapability(string $capability = 'transfers')
+    /**
+     * Override on your model to rename the morph relation (must match your published migration).
+     */
+    protected function stripeConnectMorphName(): string
     {
-        return static::$stripe->accounts->retrieveCapability($this->getStripeAccountId(), $capability)->status === 'active';
+        $name = Config::get('stripe_connect.account.morph_name');
+
+        return is_string($name) && $name !== '' ? $name : 'connectable';
+    }
+
+    protected function maxTransferAmount(): ?int
+    {
+        $max = Config::get('stripe_connect.security.max_transfer_amount');
+
+        return is_numeric($max) ? (int) $max : null;
     }
 }

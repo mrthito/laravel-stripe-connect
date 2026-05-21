@@ -9,16 +9,41 @@ which allows you to make transfers to your recipients directly from your Stripe 
 Laravel Stripe Connect provides a starting point to help you get your users set up and connected to your Stripe account
 and start making payouts in no time.
 
+## Requirements
+
+- PHP 8.3+
+- Laravel 13.x
+
+## Testing
+
+This package uses [Pest](https://pestphp.com/). Run the suite with:
+
+```
+composer test
+```
+
+## Security
+
+Production deployments should follow [SECURITY.md](SECURITY.md). At minimum:
+
+- Implement `MrThito\LaravelStripeConnect\Contracts\Payable` on your user (or recipient) model and use the `Payable` trait
+- Do not expose `StripeConnectAccount` to untrusted mass assignment
+- Authorize payouts and account creation in your own policies
+- Publish config and review `security.*` allowlists
+
 > [!TIP]
 > This package assumes that your `User` model is what will represent recipients of transfers from your platform,
 > however this can be changed.
+
+> [!NOTE]
+> Upgrading from Laravel 10–12? See [UPGRADE.md](UPGRADE.md).
 
 ## Sponsorship
 
 Laravel Stripe Connect is completely free to use for personal or commercial use. If it's making your job easier or you just want to
 make sure it keeps being supported and improved, I'd really appreciate your donations!
 
-[Donate now via GitHub Sponsors](https://github.com/sponsors/mrthito)
+[Donate now](https://buymemomo.com/rijal)
 
 Thank you 🙏
 
@@ -44,31 +69,37 @@ STRIPE_KEY=pk_test_XxxXXxXXX
 STRIPE_SECRET=sk_test_XxxXXxXXX
 ```
 
-Run migrations:
+Publish config (recommended) and the migration stub (**required** — the package does not auto-run its own migration so you can customize the schema):
 
 ```
+php artisan vendor:publish --tag=stripe-connect-config
+php artisan vendor:publish --tag=stripe-connect-migrations
 php artisan migrate
 ```
 
-If you intend to use a table other than your `users` table to record your recipients' Stripe account details, publish the migration by running
+> [!NOTE]
+> Only a **publishable stub** ships with this package (no duplicate hidden migration). See [CUSTOMIZATION.md](CUSTOMIZATION.md) for table names, custom models, and extra columns.
 
-```
-php artisan vendor:publish --provider="MrThito\LaravelStripeConnect\ServiceProvider"
-```
+## Customization
 
-> options. You can then edit the published migration in your app's `database/migrations` folder.
+See [CUSTOMIZATION.md](CUSTOMIZATION.md) for table names, custom `StripeConnectAccount` models, morph names, disabling routes, and security allowlists.
 
 ## Usage
 
 Add the `Payable` trait to any model that you consider to represent your recipient.
 
 ```php
+use MrThito\LaravelStripeConnect\Contracts\Payable as PayableContract;
 use MrThito\LaravelStripeConnect\Traits\Payable;
 
-class User extends Model
+class User extends Model implements PayableContract
 {
     use Payable;
+}
 ```
+
+The same trait works on any model (`Team`, `Seller`, etc.). Stripe credentials are stored on the
+`stripe_connect_accounts` table via a `morphOne` relation — no extra columns on your models.
 
 Then you can use the convenient methods available to get your recipients to set up or connect their
 Stripe account to your platform.

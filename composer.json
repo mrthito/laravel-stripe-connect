@@ -1,50 +1,72 @@
 {
-  "name": "mrthito/laravel-stripe-connect",
-  "type": "library",
-  "keywords": [
-    "laravel",
-    "stripe",
-    "billing"
-  ],
-  "require": {
-    "illuminate/database": "^10.0|^11.0|^12.0|^13.0",
-    "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
-    "stripe/stripe-php": ">=10.0"
-  },
-  "require-dev": {
-    "phpunit/phpunit": "^10.0|^11.0|^12.0|^13.0"
-  },
-  "autoload": {
-    "psr-4": {
-      "MrThito\\LaravelStripeConnect\\": "src/"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": {
-      "MrThito\\LaravelStripeConnect\\Tests\\": "tests/"
-    }
-  },
-  "extra": {
-    "laravel": {
-      "providers": [
-        "MrThito\\LaravelStripeConnect\\ServiceProvider"
-      ]
-    }
-  },
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "rap2h",
-      "email": "raphaelht@gmail.com"
+    "name": "mrthito/laravel-stripe-connect",
+    "description": "Stripe Connect onboarding and transfers for Laravel 13",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "stripe",
+        "stripe-connect",
+        "billing",
+        "marketplace"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "rap2h",
+            "email": "raphaelht@gmail.com"
+        },
+        {
+            "name": "Simon Hamp",
+            "email": "simon.hamp@me.com"
+        },
+        {
+            "name": "Prashant Rijal (MrThito)",
+            "email": "prashantrijal.721@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/contracts": "^13.0",
+        "illuminate/database": "^13.0",
+        "illuminate/http": "^13.0",
+        "illuminate/routing": "^13.0",
+        "illuminate/support": "^13.0",
+        "stripe/stripe-php": "^20.0"
     },
-    {
-      "name": "Simon Hamp",
-      "email": "simon.hamp@me.com"
+    "require-dev": {
+        "laravel/pint": "^1.24",
+        "orchestra/testbench": "^11.0",
+        "pestphp/pest": "^4.0"
     },
-    {
-      "name": "Prashant Rijal (MrThito)",
-      "email": "prashantrijal.721@gmail.com"
-    }
-  ],
-  "minimum-stability": "stable"
+    "autoload": {
+        "psr-4": {
+            "MrThito\\LaravelStripeConnect\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MrThito\\LaravelStripeConnect\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "MrThito\\LaravelStripeConnect\\ServiceProvider"
+            ]
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest",
+        "format": "vendor/bin/pint",
+        "format:check": "vendor/bin/pint --test",
+        "security:audit": "composer audit"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }

@@ -1,4 +1,7 @@
 /vendor
 /.idea
+/.phpunit.cache
+/.pest
 build
 composer.lock
+.phpunit.result.cache
